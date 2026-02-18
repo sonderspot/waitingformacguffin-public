@@ -2,6 +2,12 @@
 name: waitingformacguffin
 description: Oscar prediction market intelligence from waitingformacguffin.com. Get live odds, whale activity, price movements, precursor awards, order book depth, and frontrunner changes across all 19 Oscar categories. Use when user asks about Oscar markets, betting odds, nominees, or wants a market update.
 allowed-tools: Bash(curl *), Read
+homepage: https://github.com/sonderspot/waitingformacguffin-public
+metadata:
+  clawdbot:
+    requires:
+      bins:
+        - curl
 ---
 
 # WaitingForMacGuffin -- Oscar Market Intelligence
