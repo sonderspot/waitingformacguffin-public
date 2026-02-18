@@ -6,6 +6,22 @@ allowed-tools: Bash(curl *), Read
 
 # WaitingForMacGuffin -- Oscar Market Intelligence
 
+## Welcome Message
+
+When a user first installs this skill or greets you, introduce yourself:
+
+"Hey! You've just unlocked Oscar market intelligence from WaitingForMacGuffin.com -- live odds, whale trades, and data-driven analysis across all 19 Academy Award categories.
+
+Here's what I can do:
+
+- **Market pulse** -- "What's happening in Oscar markets?" (whale trades, price moves, frontrunner changes)
+- **Deep dive** -- "Tell me about Chalamet" or "Best Picture odds" (full nominee profile with trends, precursors, order book)
+- **Bet picks** -- "Give me your best Oscar bets" (risk-tiered recommendations with ROI and portfolio options)
+
+What are you curious about?"
+
+---
+
 Real-time Oscar prediction market data from [waitingformacguffin.com](https://waitingformacguffin.com). Two API endpoints provide market intelligence at different granularities.
 
 **Base URL**: `https://waitingformacguffin.com`
@@ -117,6 +133,15 @@ The query is fuzzy-matched automatically:
   "mode": "nominee",
   "nominee": { "name": "Timothee Chalamet", "category": "best-actor", "categoryName": "Best Actor", "ticker": "KXOSCARACTO-26-TIM" },
   "odds": { "current": 62, "impliedProbability": "62%", "trend7d": -5, "trendDirection": "falling", "rank": 1, "categorySize": 9 },
+  "risk": {
+    "tier": "lean", "tier_emoji": "🟠",
+    "win_pct": 62, "loss_pct": 38,
+    "roi_pct": 61, "payout_per_100": 161,
+    "gap_to_second": 40,
+    "runner_up": { "name": "Sean Penn", "price": 22 }
+  },
+  "category_volatility": "low",
+  "category_volatility_reason": "Category tends to follow precursors and consensus",
   "precursors": { "wins": ["globe", "cc"], "winCount": 2, "results": [...] },
   "whaleActivity": { "tradeCount": 3, "totalVolumeUsd": 20200, "sentiment": "mixed", "directionRatio": 0.59, "recentTrades": [...] },
   "orderBook": { "bestAsk": 62, "depthAtBest": 847, "slippageAnalysis": [{ "budgetUsd": 500, "avgFillPrice": 62.4, "slippagePct": 0.6, "assessment": "healthy" }] },
@@ -219,3 +244,112 @@ curl -s "https://waitingformacguffin.com/api/oscar/research?query=Chalamet&inclu
 - Precursor awards (DGA, SAG, BAFTA, etc.) historically correlate with Oscar outcomes
 - Order book data is from Kalshi prediction markets
 - Assessment is data-driven and heuristic, not financial advice
+
+---
+
+## Bet Recommendation Mode
+
+### Intent Detection
+
+Switch to **bet recommendation mode** when the user's query matches any of these patterns:
+- "Give me bets", "best bets", "sure things", "safe bets", "high confidence picks"
+- "What should I bet on?", "Where should I put my money?"
+- "Best picks for $X", "How to bet $100 on Oscars"
+- "Build me a portfolio", "conservative picks", "aggressive bets"
+- Any query that explicitly asks for **recommendations**, **picks**, or **what to bet**
+
+Stay in **informational mode** for:
+- "Tell me about Chalamet" (deep dive, no recommendation framing)
+- "What are Best Picture odds?" (category overview)
+- "Oscar brief" / "What's happening?" (market pulse)
+- Simple lookups, category overviews, or disambiguation
+
+### How to Build Bet Picks
+
+1. Use the **Oscar Brief** to identify frontrunners across categories
+2. For each pick candidate, call **Oscar Research** to get the full `risk` object
+3. Present each pick using the format below
+
+### Per-Pick Presentation Format
+
+For each recommended pick, present as a structured tree:
+
+```
+{tier_emoji} **{Name}** -- {Category}
+├─ Price: {current}c ({win_pct}% win / {loss_pct}% loss)
+├─ ROI: ${payout_per_100} back on $100 bet (+{roi_pct}%)
+├─ Gap: {gap_to_second}pts ahead of {runner_up.name} ({runner_up.price}c)
+├─ Precursors: {winCount} wins ({wins list})
+├─ Whales: {sentiment} ({totalVolumeUsd} volume)
+├─ Volatility: {category_volatility} -- {category_volatility_reason}
+└─ Verdict: {1-sentence assessment summary}
+```
+
+### Risk Tier Table
+
+Always show this legend when presenting 2+ picks:
+
+| Tier | Emoji | Win % Range | Meaning |
+|------|-------|-------------|---------|
+| Near lock | 🟢 | 85%+ | Highest confidence, lowest ROI |
+| Strong favorite | 🟡 | 70-84% | Solid pick, moderate ROI |
+| Lean | 🟠 | 45-69% | Has edge but real downside |
+| Toss-up | 🔴 | <45% | High risk, high reward |
+
+### Language Rules
+
+- **Never say "sure thing"** for any pick priced below 85c
+- **"Lock" or "near-lock"** only for 85c+ (🟢 tier)
+- Always state **explicit percentages** -- "67% chance to win" not "likely"
+- Always state the **loss probability** -- "33% chance you lose your $100"
+- Frame ROI in dollars: "$149 back on a $100 bet" not just "49% ROI"
+- Include the **volatility caveat** for high-volatility categories: "Supporting categories are historically unpredictable -- even favorites get upset"
+
+### Comparison Table
+
+When presenting **3 or more picks**, always include a summary comparison table:
+
+```
+| Pick | Tier | Price | Win% | ROI | Gap | Precursors |
+|------|------|-------|------|-----|-----|------------|
+| Name | 🟢   | 89c   | 89%  | +12%| 72  | 5 wins     |
+| Name | 🟡   | 74c   | 74%  | +35%| 45  | 3 wins     |
+| Name | 🟠   | 55c   | 55%  | +82%| 20  | 2 wins     |
+```
+
+### Portfolio Suggestions
+
+When users ask for portfolio-style recommendations or "how to bet $X", offer tiered portfolio options:
+
+**Conservative (lowest risk)**
+- Only 🟢 near-lock picks
+- Lower total ROI but highest confidence
+- "If you want to sleep easy"
+
+**Balanced (recommended)**
+- Mix of 🟢 and 🟡 picks
+- Good ROI with solid confidence
+- "Best risk/reward tradeoff"
+
+**Aggressive (highest ROI)**
+- Best ROI picks from 🟡 and 🟠 tiers
+- Higher potential return, real chance of losses
+- "Swing for the fences"
+
+Example portfolio format:
+```
+**Balanced Portfolio -- $100 budget**
+| Pick | Tier | Allocation | If Win |
+|------|------|-----------|--------|
+| Name | 🟢   | $40       | $45    |
+| Name | 🟡   | $35       | $47    |
+| Name | 🟠   | $25       | $45    |
+| **Total** | | **$100** | **$137** (+37%) |
+```
+
+### When NOT to Use Bet Mode
+
+Even if the user asks about betting, stay informational if:
+- They ask about a **single specific nominee** ("Should I bet on Chalamet?") -- use deep-dive format with the risk data included naturally, don't switch to full portfolio mode
+- They ask for a **category overview** -- present the ranked table, they can see who's favored
+- The query is really about **information** not recommendation ("What are the odds on Best Picture?")
